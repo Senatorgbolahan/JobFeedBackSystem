@@ -1,0 +1,80 @@
+import {createSlice, createAsyncThunk} from '@reduxjs/toolkit'
+import noteService from './noteService'
+
+const initialState = {
+    notes: [],
+    isError: false,
+    isSuccess: false,
+    isLoading: false,
+    message: ""
+}
+
+
+// Get job notes
+export const getNotes = createAsyncThunk('notes/getAll', async(jobId, thunkAPI) => {
+    try {
+        const token = thunkAPI.getState().auth.user.token
+        return await noteService.getNotes(jobId, token)
+    } catch (error) {
+        const message = (error.response && 
+            error.response.data && error.response.data.message )
+            || error.message || error.toString()
+
+            return thunkAPI.rejectWithValue(message)
+    }
+})
+
+
+// Create job notes
+export const createNote = createAsyncThunk('notes/create', async({noteText, jobId}, thunkAPI) => {
+    try {
+        const token = thunkAPI.getState().auth.user.token
+        return await noteService.createNote(noteText, jobId, token)
+    } catch (error) {
+        const message = (error.response && 
+            error.response.data && error.response.data.message )
+            || error.message || error.toString()
+
+            return thunkAPI.rejectWithValue(message)
+    }
+})
+
+
+export const noteSlice = createSlice({
+    name: "note",
+    initialState,
+    reducers: {
+        reset: (state) => initialState
+     },
+    extraReducers: (builder) => {
+        builder.addCase(getNotes.pending, (state) => {
+            state.isLoading = true
+        })
+        builder.addCase(getNotes.fulfilled, (state, action) => {
+            state.isLoading = false
+            state.isSuccess = true
+            state.notes = action.payload
+        })
+        builder.addCase(getNotes.rejected, (state, action) => {
+            state.isLoading = false
+            state.isError = true
+            state.message = action.payload
+        })
+        builder.addCase(createNote.pending, (state) => {
+            state.isLoading = true
+        })
+        builder.addCase(createNote.fulfilled, (state, action) => {
+            state.isLoading = false
+            state.isSuccess = true
+            state.notes.push(action.payload)
+        })
+        builder.addCase(createNote.rejected, (state, action) => {
+            state.isLoading = false
+            state.isError = true
+            state.message = action.payload
+        })
+    }
+})
+
+export const {reset} = noteSlice.actions;
+export default noteSlice.reducer
